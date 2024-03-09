@@ -7,16 +7,20 @@ mod utils;
 
 const BADAPPLE: &[u8] = include_bytes!("../../assets/badapple.ba");
 
-#[agb::entry]
-fn main(mut gba: agb::Gba) -> ! {
-    run_badapple(gba)
+use gba::prelude::*;
+
+#[panic_handler]
+fn panic_handler(_: &core::panic::PanicInfo) -> ! {
+  loop {}
 }
 
-fn run_badapple(mut gba: agb::Gba) -> ! {
-    let mut video = gba.display.video.bitmap3();
-    let vblank = agb::interrupt::VBlank::get();
+#[no_mangle]
+fn main() -> ! {
+  DISPCNT.write(
+    DisplayControl::new().with_video_mode(VideoMode::_3).with_show_bg2(true),
+  );
 
-    let mut reader = Reader::new(&BADAPPLE);
+  let mut reader = Reader::new(&BADAPPLE);
     let mut frame_number = 0;
 
     let height = reader.read_u8();
@@ -31,17 +35,19 @@ fn run_badapple(mut gba: agb::Gba) -> ! {
 
             for i in 0..sections_in_frame {
                 let color = reader.read_u8();
+                let gba_color = Color::from_rgb(color as u16, color as u16, color as u16);
                 let pixel_count = reader.read_u16();
                 for _ in 0..pixel_count{
                     let (x, y) = frame_m.get_pos();
-                    video.draw_point(x as i32, y as i32, if color == 0xFF { u16::MAX} else {0});
+                    VIDEO3_VRAM.index(x as usize, y as usize).write(gba_color);
                 }
             }
 
             frame_number+=1;
         }
-        vblank.wait_for_vblank();
+        //vblank.wait_for_vblank();
     }
 }
+
 
 

@@ -44,6 +44,7 @@
             llvmPackages_11.clang
             mgba
             agb-gbafix
+            gcc-arm-embedded
           ];
 
           shellHook = ''
